@@ -1,27 +1,25 @@
 /* *****************************************************************************
  *  Name:              Nir Albo
  *  Coursera User ID:  123456
- *  Last modified:     June 11, 2022
+ *  Last modified:     June 20, 2022
  **************************************************************************** */
 
-import edu.princeton.cs.algs4.StdOut;
-import edu.princeton.cs.algs4.StdRandom;
 import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 
 public class Percolation {
     private boolean[][] grid;
-    private int n;
+    private final int n;
     private int openSites;
-    private WeightedQuickUnionUF qu;
+    private final WeightedQuickUnionUF qu;
 
     // creates n-by-n grid, with all sites initially blocked
     // upper-left [1, 1], bottom-right [n, n]
     // allowed time complexity: O(n^2)
-    public Percolation(int size) {
-        if (size < 1)
-            throw new IllegalArgumentException("size must be bigger than 0!");
+    public Percolation(int n) {
+        if (n <= 0)
+            throw new IllegalArgumentException("n must be bigger than 0!");
 
-        n = size;
+        this.n = n;
         openSites = 0;
         grid = new boolean[n][n];
 
@@ -29,25 +27,17 @@ public class Percolation {
         // first site (idx 0) is the start, last site (idx n*n + 1) is the end
         // they are both virtual (not part of the grid)
         // the n*n sites between them represent the grid itself
-
-        while (!percolates()) {
-            int row = StdRandom.uniform(1, n + 1);
-            int col = StdRandom.uniform(1, n + 1);
-            open(row, col);
-        }
     }
 
     // opens the site (row, col) if it is not open already
     public void open(int row, int col) {
-        validate(row, col);
-        if (grid[row - 1][col - 1])
-            return;
-
         grid[row - 1][col - 1] = true;
+        ++openSites;
+
         int point1D = rowColTo1D(row, col);
         if (row == 1)
             qu.union(point1D, 0); // connect to the virtual start
-        else if (row == n)
+        if (row == n)
             qu.union(point1D, n * n + 1); // connect to the virtual end
 
         if (row - 2 >= 0 && isOpen(row - 1, col))
@@ -61,8 +51,6 @@ public class Percolation {
 
         if (col - 2 >= 0 && isOpen(row, col - 1))
             qu.union(point1D, rowColTo1D(row, col - 1));
-
-        openSites++;
     }
 
     // is the site (row, col) open?
@@ -74,7 +62,7 @@ public class Percolation {
     // is the site (row, col) full?
     public boolean isFull(int row, int col) {
         validate(row, col);
-        return !grid[row - 1][col - 1];
+        return qu.find(rowColTo1D(row, col)) == qu.find(0);
     }
 
     // returns the number of open sites
@@ -90,28 +78,16 @@ public class Percolation {
     // validates input indices
     private void validate(int row, int col) {
         if (row - 1 < 0 || row - 1 > n - 1)
-            throw new IndexOutOfBoundsException(
+            throw new IllegalArgumentException(
                     "row index " + Integer.toString(row) + " out of bounds!");
 
         if (col - 1 < 0 || col - 1 > n - 1)
-            throw new IndexOutOfBoundsException(
+            throw new IllegalArgumentException(
                     "col index " + Integer.toString(col) + " out of bounds!");
     }
 
     // converts from 2D indices to 1D index
     private int rowColTo1D(int row, int col) {
-        validate(row, col);
         return 1 + (row - 1) * n + (col - 1);
-    }
-
-    // test client (optional)
-    public static void main(String[] args) {
-        Percolation p = new Percolation(5);
-        for (int i = 0; i < p.grid.length; i++) {
-            for (int j = 0; j < p.grid[i].length; j++)
-                StdOut.print(Boolean.toString(p.grid[i][j]) + " ");
-
-            StdOut.println();
-        }
     }
 }
