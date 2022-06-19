@@ -5,6 +5,7 @@
  **************************************************************************** */
 
 import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.StdRandom;
 import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 
 public class Percolation {
@@ -17,7 +18,7 @@ public class Percolation {
     // upper-left [1, 1], bottom-right [n, n]
     // allowed time complexity: O(n^2)
     public Percolation(int size) {
-        if (size <= 0)
+        if (size < 1)
             throw new IllegalArgumentException("size must be bigger than 0!");
 
         n = size;
@@ -25,18 +26,43 @@ public class Percolation {
         grid = new boolean[n][n];
 
         qu = new WeightedQuickUnionUF(n * n + 2);
-        // first site (i=0) is the start, last site (i=n*n) + 1 is the end
+        // first site (idx 0) is the start, last site (idx n*n + 1) is the end
         // they are both virtual (not part of the grid)
         // the n*n sites between them represent the grid itself
+
+        while (!percolates()) {
+            int row = StdRandom.uniform(1, n + 1);
+            int col = StdRandom.uniform(1, n + 1);
+            open(row, col);
+        }
     }
 
     // opens the site (row, col) if it is not open already
     public void open(int row, int col) {
         validate(row, col);
-        if (!grid[row - 1][col - 1]) {
-            grid[row - 1][col - 1] = true;
-            openSites++;
-        }
+        if (grid[row - 1][col - 1])
+            return;
+
+        grid[row - 1][col - 1] = true;
+        int point1D = rowColTo1D(row, col);
+        if (row == 1)
+            qu.union(point1D, 0); // connect to the virtual start
+        else if (row == n)
+            qu.union(point1D, n * n + 1); // connect to the virtual end
+
+        if (row - 2 >= 0 && isOpen(row - 1, col))
+            qu.union(point1D, rowColTo1D(row - 1, col));
+
+        if (col < n && isOpen(row, col + 1))
+            qu.union(point1D, rowColTo1D(row, col + 1));
+
+        if (row < n && isOpen(row + 1, col))
+            qu.union(point1D, rowColTo1D(row + 1, col));
+
+        if (col - 2 >= 0 && isOpen(row, col - 1))
+            qu.union(point1D, rowColTo1D(row, col - 1));
+
+        openSites++;
     }
 
     // is the site (row, col) open?
@@ -63,13 +89,13 @@ public class Percolation {
 
     // validates input indices
     private void validate(int row, int col) {
-        if (row - 1 < 0 || row - 1 > n)
-            throw new ArrayIndexOutOfBoundsException(
-                    "Row must be between 1 and " + Integer.toString(n) + "!");
+        if (row - 1 < 0 || row - 1 > n - 1)
+            throw new IndexOutOfBoundsException(
+                    "row index " + Integer.toString(row) + " out of bounds!");
 
-        if (col - 1 < 0 || col - 1 > n)
-            throw new ArrayIndexOutOfBoundsException(
-                    "Col must be between 1 and " + Integer.toString(n) + "!");
+        if (col - 1 < 0 || col - 1 > n - 1)
+            throw new IndexOutOfBoundsException(
+                    "col index " + Integer.toString(col) + " out of bounds!");
     }
 
     // converts from 2D indices to 1D index
@@ -78,20 +104,14 @@ public class Percolation {
         return 1 + (row - 1) * n + (col - 1);
     }
 
-    private static void printBool(boolean b, boolean spaced) {
-        StdOut.print(Boolean.toString(b) + (spaced ? " " : ""));
-    }
-
     // test client (optional)
     public static void main(String[] args) {
         Percolation p = new Percolation(5);
         for (int i = 0; i < p.grid.length; i++) {
             for (int j = 0; j < p.grid[i].length; j++)
-                printBool(p.grid[i][j], true);
+                StdOut.print(Boolean.toString(p.grid[i][j]) + " ");
 
             StdOut.println();
         }
-        printBool(p.isOpen(1, 1), true);
-        printBool(p.isFull(2, 2), false);
     }
 }
